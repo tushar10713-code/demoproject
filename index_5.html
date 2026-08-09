@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kit &amp; Grid — Sheets that replace your subscriptions</title>
+<meta name="description" content="Three Google Sheets tools for money, tasks and training. Pay once. No subscription, ever.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script type="module" src="https://unpkg.com/@splinetool/viewer@1.12.98/build/spline-viewer.js"></script>
+<style>
+:root{
+  --void:#06070A;
+  --panel:#0D1014;
+  --panel-2:#12171E;
+  --line:#1A212B;
+  --line-hi:#26303D;
+  --ink:#EDF2F7;
+  --ink-2:#AAB6C2;
+  --muted:#6C7885;
+  --cyan:#1FD8F5;
+  --glow:rgba(31,216,245,.10);
+
+  --display:'Space Grotesk',system-ui,sans-serif;
+  --body:'Inter',system-ui,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,monospace;
+
+  --gut:clamp(20px,5vw,72px);
+  --ease:cubic-bezier(.22,.61,.36,1);
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:var(--void);color:var(--ink);
+  font-family:var(--body);font-size:16px;line-height:1.65;
+  -webkit-font-smoothing:antialiased;overflow-x:hidden;
+}
+a{color:inherit;text-decoration:none}
+::selection{background:var(--cyan);color:#04161B}
+
+/* grid atmosphere */
+body::before{
+  content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:
+    linear-gradient(to right,rgba(255,255,255,.018) 1px,transparent 1px),
+    linear-gradient(to bottom,rgba(255,255,255,.018) 1px,transparent 1px);
+  background-size:80px 80px;
+  -webkit-mask-image:radial-gradient(ellipse 90% 60% at 50% 0%,#000 25%,transparent 85%);
+  mask-image:radial-gradient(ellipse 90% 60% at 50% 0%,#000 25%,transparent 85%);
+}
+
+/* ============ NAV ============ */
+.nav{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:15px var(--gut);
+  background:rgba(6,7,10,.4);backdrop-filter:blur(18px) saturate(140%);
+  border-bottom:1px solid transparent;
+  transition:border-color .4s var(--ease),background .4s var(--ease),padding .4s var(--ease);
+}
+.nav.scrolled{border-bottom-color:var(--line);background:rgba(6,7,10,.9);padding-top:11px;padding-bottom:11px}
+.brand{font-family:var(--display);font-weight:700;font-size:15px;letter-spacing:.02em}
+.brand span{color:var(--cyan);display:inline-block;transition:transform .5s var(--ease)}
+.brand:hover span{transform:rotate(180deg)}
+.nav-links{display:flex;gap:6px;align-items:center}
+.nav-links a{
+  font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--muted);padding:8px 14px;border-radius:4px;position:relative;
+  transition:color .25s var(--ease),background .25s var(--ease);
+}
+.nav-links a:hover,.nav-links a:focus-visible{color:var(--ink);background:rgba(255,255,255,.04)}
+.nav-links a.active{color:var(--cyan)}
+.nav-links a.active::after{content:'';position:absolute;left:14px;right:14px;bottom:2px;height:1px;background:var(--cyan)}
+.nav-toggle{display:none;background:none;border:0;color:var(--ink);font-size:20px;cursor:pointer;padding:6px 8px;line-height:1}
+
+/* ============ HERO (text + animated gradient) ============ */
+.hero{
+  position:relative;min-height:100svh;width:100%;
+  display:flex;align-items:center;
+  padding:130px var(--gut) 90px;overflow:hidden;isolation:isolate;
+}
+.aurora{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.aurora b{
+  position:absolute;display:block;border-radius:50%;filter:blur(90px);opacity:.5;
+  will-change:transform;
+}
+.aurora b:nth-child(1){
+  width:52vw;height:52vw;left:-8vw;top:-14vw;
+  background:radial-gradient(circle,rgba(31,216,245,.30),transparent 68%);
+  animation:float1 22s ease-in-out infinite;
+}
+.aurora b:nth-child(2){
+  width:44vw;height:44vw;right:-10vw;top:8vh;
+  background:radial-gradient(circle,rgba(12,110,150,.34),transparent 68%);
+  animation:float2 27s ease-in-out infinite;
+}
+.aurora b:nth-child(3){
+  width:38vw;height:38vw;left:32vw;bottom:-16vw;
+  background:radial-gradient(circle,rgba(31,216,245,.14),transparent 70%);
+  animation:float3 31s ease-in-out infinite;
+}
+@keyframes float1{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(7vw,5vh) scale(1.12)}}
+@keyframes float2{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-6vw,7vh) scale(.9)}}
+@keyframes float3{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(4vw,-6vh) scale(1.15)}}
+.hero-fade{position:absolute;inset:auto 0 0 0;height:32%;z-index:1;pointer-events:none;
+  background:linear-gradient(to bottom,transparent,var(--void))}
+
+.hero-copy{position:relative;z-index:2;max-width:min(760px,100%)}
+.hero-eyebrow{
+  font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--cyan);margin-bottom:22px;display:flex;align-items:center;gap:10px;
+}
+.hero-eyebrow::before{content:'';width:26px;height:1px;background:var(--cyan);opacity:.6}
+.hero h1{font-family:var(--display);font-weight:700;font-size:clamp(40px,7.6vw,86px);line-height:.97;letter-spacing:-.04em}
+.hero h1 em{font-style:normal;color:var(--cyan);text-shadow:0 0 50px var(--glow)}
+.hero-sub{color:var(--ink-2);font-size:clamp(15.5px,2vw,19px);margin-top:24px;max-width:50ch}
+.hero-cta{display:flex;gap:12px;margin-top:36px;flex-wrap:wrap}
+.hero-meta{
+  display:flex;gap:26px;flex-wrap:wrap;margin-top:52px;
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);
+}
+.hero-meta span{display:flex;align-items:center;gap:8px}
+.hero-meta span::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--cyan)}
+
+.hero-copy>*{opacity:0;transform:translateY(24px);animation:rise .9s var(--ease) forwards}
+.hero-eyebrow{animation-delay:.15s}
+.hero h1{animation-delay:.26s}
+.hero-sub{animation-delay:.38s}
+.hero-cta{animation-delay:.5s}
+.hero-meta{animation-delay:.62s}
+@keyframes rise{to{opacity:1;transform:none}}
+
+/* ============ BUTTONS ============ */
+.btn{
+  display:inline-flex;align-items:center;gap:9px;
+  font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:500;
+  padding:14px 26px;border-radius:4px;cursor:pointer;
+  border:1px solid var(--cyan);background:var(--cyan);color:#04161B;
+  transition:transform .3s var(--ease),box-shadow .3s var(--ease),background .3s var(--ease),color .3s var(--ease);
+}
+.btn:hover,.btn:focus-visible{transform:translateY(-2px);box-shadow:0 10px 34px -10px var(--cyan)}
+.btn:active{transform:translateY(0)}
+.btn-ghost{background:transparent;color:var(--cyan);border-color:var(--line-hi)}
+.btn-ghost:hover,.btn-ghost:focus-visible{border-color:var(--cyan);box-shadow:0 10px 30px -14px var(--cyan)}
+.btn i{font-style:normal;transition:transform .3s var(--ease)}
+.btn:hover i{transform:translateX(4px)}
+
+/* ============ SECTIONS ============ */
+.sec,.showcase,.hero{scroll-margin-top:72px}
+.sec{position:relative;z-index:1;padding:clamp(84px,12vw,156px) var(--gut)}
+.sec+.sec,.showcase+.sec{border-top:1px solid var(--line)}
+.sec-head{margin-bottom:clamp(44px,6vw,68px);max-width:66ch}
+.cell-ref{
+  display:inline-block;font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;
+  color:var(--cyan);padding:4px 9px;margin-bottom:20px;
+  border:1px solid rgba(31,216,245,.22);border-radius:3px;background:rgba(31,216,245,.05);
+}
+h2{font-family:var(--display);font-weight:700;font-size:clamp(30px,5.4vw,58px);letter-spacing:-.035em;line-height:1.02}
+h2 em{font-style:normal;color:var(--cyan)}
+.sec-sub{color:var(--ink-2);max-width:54ch;margin-top:20px;font-size:clamp(15px,1.7vw,17.5px)}
+
+/* ============ SHOWCASE (full-width Spline) ============ */
+.showcase{position:relative;z-index:1;border-top:1px solid var(--line);background:var(--void)}
+.showcase-head{padding:clamp(84px,10vw,124px) var(--gut) clamp(30px,4vw,46px);max-width:66ch}
+.stage{
+  position:relative;width:100%;height:clamp(440px,72svh,760px);
+  border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+  background:radial-gradient(ellipse 60% 60% at 50% 45%,rgba(31,216,245,.05),transparent 70%);
+  overflow:hidden;
+}
+.stage spline-viewer{position:absolute;inset:0;width:100%;height:100%;display:block}
+/* edge feather only — never covers the centre, so drag/orbit stays live */
+.stage::before,.stage::after{
+  content:'';position:absolute;left:0;right:0;height:90px;z-index:2;pointer-events:none;
+}
+.stage::before{top:0;background:linear-gradient(to bottom,var(--void),transparent)}
+.stage::after{bottom:0;background:linear-gradient(to top,var(--void),transparent)}
+.drag-hint{
+  position:absolute;z-index:3;left:50%;bottom:24px;transform:translateX(-50%);
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--muted);pointer-events:none;
+  display:flex;align-items:center;gap:9px;
+  background:rgba(6,7,10,.55);border:1px solid var(--line);border-radius:20px;padding:7px 15px;
+  backdrop-filter:blur(8px);
+  transition:opacity .5s var(--ease);
+}
+.drag-hint::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--cyan);animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.7)}}
+.stage.touched .drag-hint{opacity:0}
+
+/* ============ PROJECT CARDS ============ */
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:14px}
+.card{
+  background:linear-gradient(160deg,var(--panel) 0%,rgba(13,16,20,.6) 100%);
+  border:1px solid var(--line);border-radius:8px;padding:32px 28px 28px;
+  display:flex;flex-direction:column;gap:15px;position:relative;overflow:hidden;
+  transition:transform .45s var(--ease),border-color .45s var(--ease),background .45s var(--ease);
+}
+.card::before{
+  content:'';position:absolute;inset:0;opacity:0;pointer-events:none;
+  background:radial-gradient(420px circle at var(--mx,50%) var(--my,0%),rgba(31,216,245,.09),transparent 62%);
+  transition:opacity .4s var(--ease);
+}
+.card:hover{transform:translateY(-5px);border-color:var(--line-hi);background:linear-gradient(160deg,var(--panel-2) 0%,rgba(18,23,30,.6) 100%)}
+.card:hover::before{opacity:1}
+.card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:14px}
+.card-tag{
+  font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--muted);border:1px solid var(--line);border-radius:20px;padding:4px 11px;white-space:nowrap;
+  transition:color .35s var(--ease),border-color .35s var(--ease);
+}
+.card:hover .card-tag{color:var(--cyan);border-color:rgba(31,216,245,.3)}
+.card h3{font-family:var(--display);font-size:23px;font-weight:600;letter-spacing:-.02em;line-height:1.2}
+.card p{color:var(--ink-2);font-size:15px;flex:1;line-height:1.62}
+.card-foot{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;padding-top:16px;border-top:1px solid var(--line)}
+.price{font-family:var(--display);font-size:29px;font-weight:700;color:var(--ink);letter-spacing:-.03em;line-height:1}
+.price small{display:block;font-family:var(--mono);font-size:10px;font-weight:400;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-top:7px}
+.card-arrow{font-family:var(--mono);font-size:16px;color:var(--muted);transition:color .35s var(--ease),transform .35s var(--ease)}
+.card:hover .card-arrow{color:var(--cyan);transform:translate(3px,-3px)}
+
+.bundle{
+  margin-top:14px;border:1px solid rgba(31,216,245,.2);border-radius:8px;
+  background:linear-gradient(120deg,rgba(31,216,245,.05),transparent 55%),var(--panel);
+  padding:clamp(26px,3.4vw,38px);
+  display:flex;flex-wrap:wrap;gap:26px;align-items:center;justify-content:space-between;
+  position:relative;overflow:hidden;
+}
+.bundle::after{
+  content:'';position:absolute;top:-40%;right:-6%;width:280px;height:280px;border-radius:50%;
+  background:radial-gradient(circle,var(--glow),transparent 68%);pointer-events:none;
+}
+.bundle-txt{position:relative;z-index:1}
+.bundle-txt h3{font-family:var(--display);font-size:clamp(20px,2.6vw,26px);font-weight:600;letter-spacing:-.02em;margin-bottom:7px}
+.bundle-txt p{color:var(--ink-2);font-size:15px;max-width:42ch}
+.bundle-buy{display:flex;align-items:center;gap:26px;flex-wrap:wrap;position:relative;z-index:1}
+.bundle .price{color:var(--cyan);text-shadow:0 0 34px var(--glow)}
+
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:14px;margin-top:56px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:26px 24px;transition:border-color .35s var(--ease)}
+.stat:hover{border-color:var(--line-hi)}
+.stat-n{font-family:var(--display);font-size:clamp(26px,3.6vw,38px);font-weight:700;letter-spacing:-.035em;line-height:1;color:var(--cyan)}
+.stat-l{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-top:12px;line-height:1.5}
+
+/* ============ ABOUT ============ */
+.about-wrap{display:grid;grid-template-columns:1.15fr .85fr;gap:clamp(36px,6vw,92px);align-items:start}
+.about-wrap p{color:var(--ink-2);font-size:clamp(15.5px,1.8vw,17.5px);margin-bottom:20px;max-width:56ch;line-height:1.72}
+.about-wrap p strong{color:var(--ink);font-weight:600}
+.about-list{display:flex;flex-direction:column;gap:2px}
+.about-list>div{border-left:2px solid var(--line);padding:16px 0 16px 24px;transition:border-color .35s var(--ease),padding-left .35s var(--ease)}
+.about-list>div:hover{border-left-color:var(--cyan);padding-left:29px}
+.about-list dt{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--cyan);margin-bottom:7px}
+.about-list dd{color:var(--ink-2);font-size:15px;line-height:1.6}
+
+/* ============ CONTACT ============ */
+.contact-wrap{display:grid;grid-template-columns:1.1fr .9fr;gap:clamp(36px,6vw,80px);align-items:start}
+.field{margin-bottom:20px}
+label{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:9px}
+input,textarea{
+  width:100%;background:var(--panel);border:1px solid var(--line);border-radius:5px;
+  color:var(--ink);font-family:var(--body);font-size:15px;padding:14px 16px;
+  transition:border-color .3s var(--ease),background .3s var(--ease),box-shadow .3s var(--ease);
+}
+input::placeholder,textarea::placeholder{color:#4A5561}
+input:hover,textarea:hover{border-color:var(--line-hi)}
+input:focus,textarea:focus{outline:none;border-color:var(--cyan);background:var(--panel-2);box-shadow:0 0 0 3px rgba(31,216,245,.09)}
+textarea{resize:vertical;min-height:130px}
+.contact-side{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:clamp(26px,3.4vw,36px)}
+.contact-side h3{font-family:var(--display);font-size:20px;font-weight:600;letter-spacing:-.02em;margin-bottom:12px}
+.contact-side p{color:var(--ink-2);margin-bottom:24px;font-size:15px;line-height:1.65}
+.wa-note{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;color:var(--muted);margin-top:16px;line-height:1.6}
+.form-status{font-family:var(--mono);font-size:11.5px;letter-spacing:.05em;margin-top:16px;min-height:18px}
+.form-status.err{color:#FF7070}
+.form-status.ok{color:var(--cyan)}
+
+/* ============ FOOTER ============ */
+footer{
+  position:relative;z-index:1;border-top:1px solid var(--line);
+  padding:34px var(--gut);display:flex;flex-wrap:wrap;gap:16px;
+  justify-content:space-between;align-items:center;
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);
+}
+
+/* ============ REVEAL ============ */
+.rv{opacity:0;transform:translateY(26px);transition:opacity .8s var(--ease),transform .8s var(--ease)}
+.rv.in{opacity:1;transform:none}
+.stg>*{opacity:0;transform:translateY(22px);transition:opacity .7s var(--ease),transform .7s var(--ease)}
+.stg.in>*{opacity:1;transform:none}
+.stg.in>*:nth-child(2){transition-delay:.09s}
+.stg.in>*:nth-child(3){transition-delay:.18s}
+.stg.in>*:nth-child(4){transition-delay:.27s}
+
+/* ============ RESPONSIVE ============ */
+@media (max-width:900px){
+  .about-wrap,.contact-wrap{grid-template-columns:1fr}
+}
+@media (max-width:760px){
+  .nav-toggle{display:block}
+  .nav-links{
+    position:absolute;top:100%;left:0;right:0;flex-direction:column;gap:0;
+    background:rgba(6,7,10,.98);backdrop-filter:blur(18px);
+    border-bottom:1px solid var(--line);
+    max-height:0;overflow:hidden;transition:max-height .4s var(--ease);
+  }
+  .nav-links.open{max-height:240px}
+  .nav-links a{width:100%;padding:16px var(--gut);border-top:1px solid var(--line);border-radius:0;font-size:12.5px}
+  .nav-links a.active::after{left:var(--gut);right:auto;width:18px;bottom:12px}
+  .hero{min-height:92svh;padding-top:112px}
+  .hero-cta .btn{flex:1;justify-content:center}
+  .hero-meta{gap:14px;flex-direction:column;margin-top:40px}
+  .stage{height:clamp(360px,60svh,520px)}
+  .bundle{flex-direction:column;align-items:flex-start}
+  .bundle-buy{width:100%;justify-content:space-between}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important;transition-duration:.01ms!important}
+  html{scroll-behavior:auto}
+  .rv,.stg>*,.hero-copy>*{opacity:1;transform:none}
+}
+</style>
+</head>
+<body>
+
+<nav class="nav" id="nav">
+  <a href="#top" class="brand">KIT<span>&amp;</span>GRID</a>
+  <button class="nav-toggle" id="navToggle" aria-label="Open menu" aria-expanded="false">☰</button>
+  <div class="nav-links" id="navLinks">
+    <a href="#showcase">Showcase</a>
+    <a href="#projects">Projects</a>
+    <a href="#about">About</a>
+    <a href="#contact">Contact</a>
+  </div>
+</nav>
+
+<!-- ============ HERO ============ -->
+<header class="hero" id="top">
+  <div class="aurora"><b></b><b></b><b></b></div>
+  <div class="hero-fade"></div>
+  <div class="hero-copy">
+    <div class="hero-eyebrow">Pay once · Own forever</div>
+    <h1>Your apps expire.<br>Your <em>sheets</em> don't.</h1>
+    <p class="hero-sub">Three Google Sheets built to replace the subscriptions quietly draining your account. No login, no monthly fee, no export limits.</p>
+    <div class="hero-cta">
+      <a href="#projects" class="btn">See the tools <i>→</i></a>
+      <a href="#contact" class="btn btn-ghost">Get in touch</a>
+    </div>
+    <div class="hero-meta">
+      <span>Built in Delhi NCR</span>
+      <span>Works in Google Sheets</span>
+      <span>No subscription</span>
+    </div>
+  </div>
+</header>
+
+<!-- ============ SHOWCASE ============ -->
+<section class="showcase" id="showcase">
+  <div class="showcase-head rv">
+    <span class="cell-ref">A1 · Take a look</span>
+    <h2>Turn it over.<br>See what you're <em>getting</em>.</h2>
+    <p class="sec-sub">Drag to rotate. Everything here ships as a Google Sheet you copy straight to your own Drive.</p>
+  </div>
+  <div class="stage" id="stage">
+    <spline-viewer url="https://prod.spline.design/gNPxArUpFdMxW1hU/scene.splinecode"></spline-viewer>
+    <div class="drag-hint">Drag to rotate</div>
+  </div>
+</section>
+
+<!-- ============ PROJECTS ============ -->
+<section class="sec" id="projects">
+  <div class="sec-head rv">
+    <span class="cell-ref">B1 · The tools</span>
+    <h2>Three sheets.<br>Six fewer <em>subscriptions</em>.</h2>
+    <p class="sec-sub">Each one started as something we needed and refused to rent monthly. Copy it to your Drive and it's yours — no strings, no renewal date.</p>
+  </div>
+
+  <div class="grid stg">
+    <article class="card">
+      <div class="card-top"><h3>Flow State PRO</h3><span class="card-tag">Tasks</span></div>
+      <p>Weekly planning that doesn't collapse by Wednesday. Priorities, automatic carryover, and a review loop that takes four minutes on a Sunday.</p>
+      <div class="card-foot"><div class="price">₹199<small>One-time</small></div><span class="card-arrow">↗</span></div>
+    </article>
+    <article class="card">
+      <div class="card-top"><h3>Loud Ledger PRO</h3><span class="card-tag">Money</span></div>
+      <p>Expenses that categorise themselves as you type. Monthly rollups, category limits, and a dashboard that tells you the truth about your spending.</p>
+      <div class="card-foot"><div class="price">₹299<small>One-time</small></div><span class="card-arrow">↗</span></div>
+    </article>
+    <article class="card">
+      <div class="card-top"><h3>Iron Log PRO</h3><span class="card-tag">Training</span></div>
+      <p>Progressive overload tracking with volume charts, PR history, and macro logging. Built for people who actually run the numbers, not just the reps.</p>
+      <div class="card-foot"><div class="price">₹499<small>One-time</small></div><span class="card-arrow">↗</span></div>
+    </article>
+  </div>
+
+  <div class="bundle rv">
+    <div class="bundle-txt">
+      <h3>The full grid</h3>
+      <p>All three tools together — ₹198 less than buying them one at a time.</p>
+    </div>
+    <div class="bundle-buy">
+      <div class="price">₹799<small>All three</small></div>
+      <a href="#contact" class="btn">Get the bundle <i>→</i></a>
+    </div>
+  </div>
+
+  <!-- Swap these for real numbers once you have sales data -->
+  <div class="stats stg">
+    <div class="stat"><div class="stat-n">3</div><div class="stat-l">Tools shipped</div></div>
+    <div class="stat"><div class="stat-n">₹0</div><div class="stat-l">Monthly fees</div></div>
+    <div class="stat"><div class="stat-n">100%</div><div class="stat-l">Yours after purchase</div></div>
+    <div class="stat"><div class="stat-n">Sheets</div><div class="stat-l">No new app to learn</div></div>
+  </div>
+</section>
+
+<!-- ============ ABOUT ============ -->
+<section class="sec" id="about">
+  <div class="sec-head rv">
+    <span class="cell-ref">C1 · The reasoning</span>
+    <h2>Why <em>sheets</em>, not another app</h2>
+  </div>
+  <div class="about-wrap">
+    <div class="rv">
+      <p><strong>Most productivity apps solve a ₹200 problem for ₹500 a month.</strong> You end up renting five of them, none of which talk to each other, all of which hold your data hostage the moment the card declines.</p>
+      <p>Kit &amp; Grid is the other answer. Every tool is a Google Sheet — a format you already know, already trust, and probably already have open in another tab. Nothing to install, nothing to migrate if you ever walk away.</p>
+      <p>Built out of Delhi NCR by someone who got tired of doing the subscription math.</p>
+    </div>
+    <dl class="about-list rv">
+      <div><dt>What you get</dt><dd>A sheet you copy to your own Drive. Yours the second it lands.</dd></div>
+      <div><dt>What you don't</dt><dd>A login, a renewal charge, or an app you'll open twice and forget.</dd></div>
+      <div><dt>Who it's for</dt><dd>People who'd rather tweak a formula than file a feature request.</dd></div>
+    </dl>
+  </div>
+</section>
+
+<!-- ============ CONTACT ============ -->
+<section class="sec" id="contact">
+  <div class="sec-head rv">
+    <span class="cell-ref">D1 · Say hello</span>
+    <h2>Questions before you <em>buy</em>?</h2>
+    <p class="sec-sub">Ask about a tool, or tell me what you'd want built. Replies usually land the same day.</p>
+  </div>
+
+  <div class="contact-wrap">
+    <form class="rv" id="contactForm" novalidate>
+      <div class="field">
+        <label for="name">Name</label>
+        <input type="text" id="name" name="name" required autocomplete="name" placeholder="Your name">
+      </div>
+      <div class="field">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" required autocomplete="email" placeholder="you@example.com">
+      </div>
+      <div class="field">
+        <label for="msg">Message</label>
+        <textarea id="msg" name="message" required placeholder="What are you trying to track?"></textarea>
+      </div>
+      <button type="submit" class="btn">Send message <i>→</i></button>
+      <p class="form-status" id="formStatus" role="status"></p>
+    </form>
+
+    <aside class="contact-side rv">
+      <h3>Prefer WhatsApp?</h3>
+      <p>Faster for quick questions — pricing, what's inside a sheet, or whether a tool fits what you're doing.</p>
+      <a href="https://wa.me/91XXXXXXXXXX" class="btn btn-ghost" target="_blank" rel="noopener">Message on WhatsApp <i>→</i></a>
+      <p class="wa-note">Replace the number in this link before deploying.</p>
+    </aside>
+  </div>
+</section>
+
+<footer>
+  <span>Kit &amp; Grid — Delhi NCR</span>
+  <span>Pay once. Own it.</span>
+</footer>
+
+<script>
+const nav=document.getElementById('nav');
+addEventListener('scroll',()=>nav.classList.toggle('scrolled',scrollY>40),{passive:true});
+
+const tog=document.getElementById('navToggle'),links=document.getElementById('navLinks');
+tog.addEventListener('click',()=>{
+  const open=links.classList.toggle('open');
+  tog.setAttribute('aria-expanded',open);
+  tog.textContent=open?'✕':'☰';
+});
+links.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>{
+  links.classList.remove('open');tog.setAttribute('aria-expanded','false');tog.textContent='☰';
+}));
+
+const navA=[...links.querySelectorAll('a')];
+const spy=new IntersectionObserver(es=>{
+  es.forEach(e=>{
+    if(e.isIntersecting){
+      navA.forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+e.target.id));
+    }
+  });
+},{rootMargin:'-45% 0px -50% 0px'});
+['showcase','projects','about','contact'].forEach(id=>spy.observe(document.getElementById(id)));
+
+const io=new IntersectionObserver(es=>{
+  es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}});
+},{threshold:.12,rootMargin:'0px 0px -50px 0px'});
+document.querySelectorAll('.rv,.stg').forEach(el=>io.observe(el));
+
+// hide the drag hint once the user actually interacts with the scene
+const stage=document.getElementById('stage');
+['pointerdown','touchstart','wheel'].forEach(ev=>
+  stage.addEventListener(ev,()=>stage.classList.add('touched'),{once:true,passive:true}));
+
+document.querySelectorAll('.card').forEach(c=>{
+  c.addEventListener('pointermove',e=>{
+    const r=c.getBoundingClientRect();
+    c.style.setProperty('--mx',(e.clientX-r.left)+'px');
+    c.style.setProperty('--my',(e.clientY-r.top)+'px');
+  });
+});
+</script>
+
+<!-- Contact form → Supabase (anon key only; safe for frontend) -->
+<script type="module">
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+const SUPABASE_URL = 'https://sshtwyqoqakynzmjzpac.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNzaHR3eXFvcWFreW56bWp6cGFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYyNTUyMjIsImV4cCI6MjEwMTgzMTIyMn0.nJ8evozYPO1EjNwGAicPgMsOHIHGdnmKD2oTNhEDzkw';
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const form = document.getElementById('contactForm');
+const statusEl = document.getElementById('formStatus');
+const submitBtn = form.querySelector('button[type="submit"]');
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  statusEl.className = 'form-status';
+  statusEl.textContent = '';
+
+  if (!form.checkValidity()) {
+    statusEl.classList.add('err');
+    statusEl.textContent = 'Fill in all three fields.';
+    return;
+  }
+
+  const name = form.name.value.trim();
+  const email = form.email.value.trim();
+  const message = form.message.value.trim();
+
+  submitBtn.disabled = true;
+  statusEl.textContent = 'Sending…';
+
+  try {
+    const { error } = await supabase.from('messages').insert([{ name, email, message }]);
+    if (error) throw error;
+    form.reset();
+    statusEl.classList.add('ok');
+    statusEl.textContent = 'Message sent!';
+  } catch (err) {
+    console.error('Supabase insert failed:', err);
+    statusEl.classList.add('err');
+    statusEl.textContent = 'Something went wrong';
+  } finally {
+    submitBtn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>
